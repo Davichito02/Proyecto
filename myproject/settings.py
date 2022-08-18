@@ -38,6 +38,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    'djangosecure',
+
     'rest_framework.authtoken',
     'rest_framework',
     'corsheaders',
@@ -57,8 +60,10 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware'
 ]
+
+SECURE_SSL_REDIRECT = True
 
 #CORS O CLIENTES PERMITIDOS
 CORS_ORIGIN_WHITELIST = [
@@ -68,6 +73,7 @@ CORS_ORIGIN_WHITELIST = [
 
 #ROOT URL O URL PRINCIPAL
 ROOT_URLCONF = 'myproject.urls'
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTOCOL', 'https')
 
 #TEMPLATES
 TEMPLATES = [
