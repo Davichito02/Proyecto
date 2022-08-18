@@ -28,7 +28,7 @@ SECRET_KEY = 'django-insecure-oss*i37pl-5mc==cvp+2b657z*&-g3tt%x1f8%jzd9uvb19ngp
 DEBUG = False
 
 #HOST PERMITIDOS
-ALLOWED_HOSTS = ["127.0.0.1", "localhost", "https://robotica-utc.herokuapp.com/"]
+ALLOWED_HOSTS = ["*"]
 
 # Application definition
 INSTALLED_APPS = [
