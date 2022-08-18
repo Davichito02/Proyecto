@@ -3,13 +3,19 @@ from django.urls import path
 
 # Create your urls here.
 urlpatterns = [
+  #Miembros
+  path('miembro/', MiembroApi.as_view(), name='private_miembro'),
+  path('miembro/<id_miem>/', MiembroDetailApi.as_view(), name='private_miembro_detail'),
+  path('public/miembro-with-filter/<tipo>/', MiembroFilterApi.as_view(), name='public_miembro_filter'),
+  path('public/miembro/', PublicMiembroApi.as_view(), name='public_miembro'),
+  path('public/miembro/<id_miem>/', PublicMiembroDetailApi.as_view(), name='public_miembro_detail'),
+
   #Investigación
   path('proyecto/', ProyectoApi.as_view(), name='private_proyecto'),
   path('proyecto/<id_pro>/', ProyectoDetailApi.as_view(), name='private_proyecto_detail'),
   path('public/proyecto/', PublicProyectoApi.as_view(), name='public_proyecto'),
   path('public/proyecto/<id_pro>/', PublicProyectoDetailApi.as_view(), name='public_proyecto_detail'),
 
-  #Archivos por proyecto
   path('archivo/', ArchivoApi.as_view(), name='private_archivo'),
   path('archivo/<id_arch>/', ArchivoDetailApi.as_view(), name='private_archivo_detail'),
   path('archivo-by-proyecto/<fk_id_pro>/', ArchivoByProApi.as_view(), name='private_archivo_by_proyecto'),
@@ -40,22 +46,22 @@ urlpatterns = [
   path('public/congreso/', PublicCongresoApi.as_view(), name='public_congreso'),
   path('public/congreso/<id_con>/', PublicCongresoDetailApi.as_view(), name='public_congreso_detail'),
 
-  #Miembros
-  path('miembro/', MiembroApi.as_view(), name='private_miembro'),
-  path('miembro/<id_miem>/', MiembroDetailApi.as_view(), name='private_miembro_detail'),
-  path('public/miembro-with-filter/<tipo>/', MiembroFilterApi.as_view(), name='public_miembro_filter'),
-  path('public/miembro/', PublicMiembroApi.as_view(), name='public_miembro'),
-  path('public/miembro/<id_miem>/', PublicMiembroDetailApi.as_view(), name='public_miembro_detail'),
-
-  #Tema por usuario
-  path('tema/', TemaApi.as_view(), name='private_tema'),
-  path('tema/<id_tem>/', TemaDetailApi.as_view(), name='private_tema_detail'),
-  path('tema-by-user/<fk_id_usu>/', TemaByUserApi.as_view(), name='private_tema_by_user'),
+  #Capacitaciones
+  path('capacitacion/', CapacitacionApi.as_view(), name='private_capacitacion'),
+  path('capacitacion/<id_cap>/', CapacitacionDetailApi.as_view(), name='private_capacitacion_detail'),
+  path('public/capacitacion-with-filter/<tipo>/', CapacitacionFilterApi.as_view(), name='public_capacitacion_filter'),
+  path('public/capacitacion/', PublicCapacitacionApi.as_view(), name='public_capacitacion'),
+  path('public/capacitacion/<id_cap>/', PublicCapacitacionDetailApi.as_view(), name='public_capacitacion_detail'),
 
   #Carousel de imágenes
   path('carousel/', CarouselApi.as_view(), name='private_carousel'),
   path('carousel/<id_car>/', CarouselDetailApi.as_view(), name='private_carousel_detail'),
   path('public/carousel/', PublicCarouselApi.as_view(), name='public_carousel'),
   path('public/carousel/<id_car>/', PublicCarouselDetailApi.as_view(), name='public_carousel_detail'),
+
+  #Tema por usuario
+  path('tema/', TemaApi.as_view(), name='private_tema'),
+  path('tema/<id_tem>/', TemaDetailApi.as_view(), name='private_tema_detail'),
+  path('tema-by-user/<fk_id_usu>/', TemaByUserApi.as_view(), name='private_tema_by_user'),
 
 ]

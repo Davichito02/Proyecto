@@ -1,5 +1,10 @@
 from enum import Enum
 class PermissionsEnum(Enum):
+    ADD_CAPACITACION= "api.add_capacitacion"
+    VIEW_CAPACITACION= "api.view_capacitacion"
+    CHANGE_CAPACITACION= "api.change_capacitacion"
+    DELETE_CAPACITACION= "api.delete_capacitacion"
+
     ADD_MIEMBRO= "api.add_miembro"
     VIEW_MIEMBRO= "api.view_miembro"
     CHANGE_MIEMBRO= "api.change_miembro"

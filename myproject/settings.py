@@ -25,7 +25,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR,'media')
 SECRET_KEY = 'django-insecure-oss*i37pl-5mc==cvp+2b657z*&-g3tt%x1f8%jzd9uvb19ngp'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 #HOST PERMITIDOS
 ALLOWED_HOSTS = ["127.0.0.1","localhost"]
@@ -93,15 +93,16 @@ WSGI_APPLICATION = 'myproject.wsgi.application'
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 DATABASES = {
    'default': {
-       'ENGINE': 'django.db.backends.mysql',
-       'NAME': 'roboticaUTC',
-       'USER':'root',
-       'PASSWORD':'',
-       'HOST':'localhost',
-       'PORT':'3306',
-       'OPTIONS': {
-           'init_command': "SET sql_mode='STRICT_ALL_TABLES'"
-        }
+       'ENGINE': 'django.db.backends.postgresql_psycopg2',
+       'NAME': 'd4pbe8k2tdigro',
+       'USER': 'lrlbeutmostvcu',
+       'PASSWORD': '484211793888faab2b0cc4e12e87387452405060d7ce97ce5bdef1c631feee65',
+       'HOST': 'ec2-34-203-182-65.compute-1.amazonaws.com',
+       'PORT': '5432'
+       
+       #'OPTIONS': {
+        #   'init_command': "SET sql_mode='STRICT_ALL_TABLES'"
+        #}
    }
 }
 

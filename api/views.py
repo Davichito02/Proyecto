@@ -1,7 +1,7 @@
 import os
 from .models import *
 from .serializers import *
-from myproject.selects import *
+from myproject.choices import *
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
 from rest_framework.response import Response
@@ -11,6 +11,146 @@ from rest_framework.permissions import IsAuthenticated, DjangoModelPermissions
 from users.permissions_enum import PermissionsEnum as permiso
 
 # Create your views here.
+#Miembros
+class MiembroApi(generics.ListCreateAPIView):
+    parser_class = (FileUploadParser,)
+    queryset = Miembro.objects.all()
+    serializer_class = MiembroSerializer
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (DjangoModelPermissions,)
+    http_method_names = ['get', 'post', 'options']
+
+    def get(self, request, *args, **kwargs):
+        view_perm = request.user.has_perm(permiso.VIEW_MIEMBRO.value)
+        change_perm = request.user.has_perm(permiso.CHANGE_MIEMBRO.value)
+        if view_perm or change_perm:
+            miembros = Miembro.objects.all()
+            miembros_serializer = self.get_serializer(miembros, many=True)
+            msg = 'No se han encontrado registros.'
+            if(miembros_serializer.data):
+                msg = 'Datos obtenidos correctamente.'
+            return Response({'error': False, 'msg': msg, 'data': miembros_serializer.data}, status = status.HTTP_200_OK)
+        else:
+            return Response({'error': True, 'msg': 'Usted no tiene permiso para ver los registros.', 'data': None}, status = status.HTTP_200_OK)
+    def post(self, request, *args, **kwargs):
+        view_perm = request.user.has_perm(permiso.VIEW_MIEMBRO.value)
+        change_perm = request.user.has_perm(permiso.CHANGE_MIEMBRO.value)
+        miembro_serializer = self.get_serializer(data=request.data)
+        if miembro_serializer.is_valid():
+            miembro_serializer.save()
+            if view_perm or change_perm:
+                return Response({'error': False,'msg': 'Registro Exitoso!!', 'data': miembro_serializer.data}, status = status.HTTP_201_CREATED)
+            else:
+                return Response({'error': False,'msg': 'Registro Exitoso!!', 'data': None}, status = status.HTTP_201_CREATED)
+        return Response({'error': True, 'msg': miembro_serializer.errors, 'data': None}, status = status.HTTP_400_BAD_REQUEST)
+
+class MiembroDetailApi(generics.RetrieveUpdateDestroyAPIView):
+    parser_class = (FileUploadParser,)
+    queryset = Miembro.objects.all()
+    serializer_class = MiembroSerializer
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (DjangoModelPermissions,)
+    http_method_names = ['get', 'put', 'delete', 'options']
+
+    def get_object(self):
+        try:
+            return get_object_or_404(Miembro, pk=self.kwargs.get('id_miem'))
+        except:
+            return None
+
+    def get(self, request, id_miem=None, *args, **kwars):
+        view_perm = request.user.has_perm(permiso.VIEW_MIEMBRO.value)
+        change_perm = request.user.has_perm(permiso.CHANGE_MIEMBRO.value)
+        if view_perm or change_perm:
+            try:
+                try:
+                    miembro = Miembro.objects.get(id_miem = id_miem)
+                    miembro_serializer = self.get_serializer(miembro)
+                    #return Response({'error': False, 'msg': 'Registro encontrado.', 'data': miembro_serializer.data}, status = status.HTTP_200_OK)
+                    return Response(miembro_serializer.data, status = status.HTTP_200_OK)
+                except Miembro.DoesNotExist:
+                    return Response({'error': True, 'msg': 'El registro no existe.', 'data': None}, status = status.HTTP_404_NOT_FOUND)
+            except:
+                return Response({'error': True, 'msg': 'El id enviado es un UUID inválido.', 'data': None}, status = status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({'error': True, 'msg': 'Usted no tiene permiso para realizar esta acción.', 'data': None}, status = status.HTTP_403_FORBIDDEN)
+    def put(self, request, id_miem=None, *args, **kwargs):
+        try:
+            try:
+                miembro = Miembro.objects.get(id_miem = id_miem)
+                miembro_serializer = self.get_serializer(miembro, data=request.data)
+                if miembro_serializer.is_valid():
+                    miembro_serializer.save()
+                    return Response({'error': False,'msg': 'Actualización Exitosa!!', 'data': miembro_serializer.data}, status = status.HTTP_200_OK)
+                return Response({'error': True, 'msg': miembro_serializer.errors, 'data': None}, status = status.HTTP_400_BAD_REQUEST)
+            except Miembro.DoesNotExist:
+                return Response({'error': True, 'msg': 'El registro no existe.', 'data': None}, status = status.HTTP_404_NOT_FOUND)
+        except:
+            return Response({'error': True, 'msg': 'El id enviado es un UUID inválido.', 'data': None}, status = status.HTTP_400_BAD_REQUEST)
+    def delete(self, request, id_miem=None, *args, **kwargs):
+        try:
+            try:
+                miembro = Miembro.objects.get(id_miem = id_miem)
+                if(str(miembro.imagen_miem) != ''):
+                    if os.path.isfile(miembro.imagen_miem.path):
+                        os.remove(miembro.imagen_miem.path)
+                if(str(miembro.hvida_miem) != ''):
+                    if os.path.isfile(miembro.hvida_miem.path):
+                        os.remove(miembro.hvida_miem.path)
+                miembro.delete()
+                return Response({'error': False, 'msg': 'Registro Eliminado Exitosamente!!'}, status = status.HTTP_200_OK)
+            except Miembro.DoesNotExist:
+                return Response({'error': True, 'msg': 'El registro no existe.'}, status = status.HTTP_404_NOT_FOUND)
+        except:
+            return Response({'error': True, 'msg': 'El id enviado es un UUID inválido.'}, status = status.HTTP_400_BAD_REQUEST)
+
+class MiembroFilterApi(generics.ListAPIView):
+    queryset = Miembro.objects.all()
+    serializer_class = PublicMiembroSerializer
+    http_method_names = ['get', 'options']
+
+    def get(self, request, tipo=0, *args, **kwargs):
+        try:
+            if int(tipo)>=0 and int(tipo)<(len(CHOICE_MIEMBRO)):
+                miembros = Miembro.objects.filter(tipo_miem = tipo)
+                miembros_serializer = self.get_serializer(miembros, many=True)
+                msg = 'Lo sentimos. No se han encontrado miembros de este tipo.'
+                if(miembros_serializer.data):
+                    msg = 'Datos obtenidos correctamente.'
+                return Response({'error': False, 'msg': msg, 'data': miembros_serializer.data}, status = status.HTTP_200_OK)
+            return Response({'error': True, 'msg': 'Parametro ?(tipo de miembros)=/'+tipo+'/ enviado no existe. Ayuda '+str(CHOICE_MIEMBRO), 'data': None}, status = status.HTTP_404_NOT_FOUND)
+        except:
+            return Response({'error': True, 'msg': 'Parametro ?(tipo de miembros)=/'+tipo+'/ enviado es inválido. Ayuda '+str(CHOICE_MIEMBRO), 'data': None}, status = status.HTTP_400_BAD_REQUEST)
+
+class PublicMiembroApi(generics.ListAPIView):
+    queryset = Miembro.objects.all()
+    serializer_class = PublicMiembroSerializer
+    http_method_names = ['get', 'options']
+
+    def get(self, request, *args, **kwargs):
+        miembros = Miembro.objects.all()
+        miembros_serializer = self.get_serializer(miembros, many=True)
+        msg = 'Lo sentimos. No se han encontrado registros.'
+        if(miembros_serializer.data):
+            msg = 'Datos obtenidos correctamente.'
+        return Response({'msg': msg, 'data': miembros_serializer.data}, status = status.HTTP_200_OK)
+           
+class PublicMiembroDetailApi(generics.RetrieveAPIView):
+    queryset = Miembro.objects.all()
+    serializer_class = PublicMiembroSerializer
+    http_method_names = ['get', 'options']
+
+    def get(self, request, id_miem=None, *args, **kwars):
+        try:
+            try:
+                miembro = Miembro.objects.get(id_miem = id_miem)
+                miembro_serializer = self.get_serializer(miembro)
+                return Response({'error': False, 'msg': 'Registro encontrado.', 'data': miembro_serializer.data}, status = status.HTTP_200_OK)
+            except Miembro.DoesNotExist:
+                return Response({'error': True, 'msg': 'El registro no existe.', 'data': None}, status = status.HTTP_404_NOT_FOUND)
+        except:
+            return Response({'error': True, 'msg': 'El id enviado es un UUID inválido.', 'data': None}, status = status.HTTP_400_BAD_REQUEST)
+
 #Investigación
 class ProyectoApi(generics.ListCreateAPIView):
     queryset = Proyecto.objects.all()
@@ -24,7 +164,9 @@ class ProyectoApi(generics.ListCreateAPIView):
         change_perm = request.user.has_perm(permiso.CHANGE_PROYECTO.value)
         if view_perm or change_perm:
             proyectos = Proyecto.objects.all()
+            self.serializer_class = ListProyectoSerializer
             proyectos_serializer = self.get_serializer(proyectos, many=True)
+            self.serializer_class = ProyectoSerializer
             msg = 'No se han encontrado registros.'
             if(proyectos_serializer.data):
                 msg = 'Datos obtenidos correctamente.'
@@ -98,7 +240,7 @@ class ProyectoDetailApi(generics.RetrieveUpdateDestroyAPIView):
 
 class PublicProyectoApi(generics.ListAPIView):
     queryset = Proyecto.objects.all()
-    serializer_class = ProyectoSerializer
+    serializer_class = ListProyectoSerializer
     http_method_names = ['get', 'options']
 
     def get(self, request, *args, **kwargs):
@@ -111,7 +253,7 @@ class PublicProyectoApi(generics.ListAPIView):
            
 class PublicProyectoDetailApi(generics.RetrieveAPIView):
     queryset = Proyecto.objects.all()
-    serializer_class = ProyectoSerializer
+    serializer_class = PublicProyectoSerializer
     http_method_names = ['get', 'options']
 
     def get(self, request, id_pro=None, *args, **kwars):
@@ -124,7 +266,6 @@ class PublicProyectoDetailApi(generics.RetrieveAPIView):
                 return Response({'error': True, 'msg': 'El proyecto no existe.', 'data': None}, status = status.HTTP_404_NOT_FOUND)
         except:
             return Response({'error': True, 'msg': 'El id enviado es un UUID inválido.', 'data': None}, status = status.HTTP_400_BAD_REQUEST)
-
 
 class ArchivoApi(generics.ListCreateAPIView):
     parser_class = (FileUploadParser,)
@@ -252,7 +393,9 @@ class ArticuloApi(generics.ListCreateAPIView):
         change_perm = request.user.has_perm(permiso.CHANGE_ARTICULO.value)
         if view_perm or change_perm:
             articulos = Articulo.objects.all()
+            self.serializer_class = ListArticuloSerializer
             articulos_serializer = self.get_serializer(articulos, many=True)
+            self.serializer_class = ArticuloSerializer
             msg = 'No se han encontrado registros.'
             if(articulos_serializer.data):
                 msg = 'Datos obtenidos correctamente.'
@@ -326,7 +469,7 @@ class ArticuloDetailApi(generics.RetrieveUpdateDestroyAPIView):
 
 class PublicArticuloApi(generics.ListAPIView):
     queryset = Articulo.objects.all()
-    serializer_class = ArticuloSerializer
+    serializer_class = ListArticuloSerializer
     http_method_names = ['get', 'options']
 
     def get(self, request, *args, **kwargs):
@@ -339,7 +482,7 @@ class PublicArticuloApi(generics.ListAPIView):
            
 class PublicArticuloDetailApi(generics.RetrieveAPIView):
     queryset = Articulo.objects.all()
-    serializer_class = ArticuloSerializer
+    serializer_class = PublicArticuloSerializer
     http_method_names = ['get', 'options']
 
     def get(self, request, id_art=None, *args, **kwars):
@@ -365,7 +508,9 @@ class LibroApi(generics.ListCreateAPIView):
         change_perm = request.user.has_perm(permiso.CHANGE_LIBRO.value)
         if view_perm or change_perm:
             libros = Libro.objects.all()
+            self.serializer_class = ListLibroSerializer
             libros_serializer = self.get_serializer(libros, many=True)
+            self.serializer_class = LibroSerializer
             msg = 'No se han encontrado registros.'
             if(libros_serializer.data):
                 msg = 'Datos obtenidos correctamente.'
@@ -439,7 +584,7 @@ class LibroDetailApi(generics.RetrieveUpdateDestroyAPIView):
 
 class PublicLibroApi(generics.ListAPIView):
     queryset = Libro.objects.all()
-    serializer_class = LibroSerializer
+    serializer_class = ListLibroSerializer
     http_method_names = ['get', 'options']
 
     def get(self, request, *args, **kwargs):
@@ -452,7 +597,7 @@ class PublicLibroApi(generics.ListAPIView):
            
 class PublicLibroDetailApi(generics.RetrieveAPIView):
     queryset = Libro.objects.all()
-    serializer_class = LibroSerializer
+    serializer_class = PublicLibroSerializer
     http_method_names = ['get', 'options']
 
     def get(self, request, id_lib=None, *args, **kwars):
@@ -591,7 +736,9 @@ class TesisApi(generics.ListCreateAPIView):
         change_perm = request.user.has_perm(permiso.CHANGE_TESIS.value)
         if view_perm or change_perm:
             tesis = Tesis.objects.all()
+            self.serializer_class = ListTesisSerializer
             tesis_serializer = self.get_serializer(tesis, many=True)
+            self.serializer_class = TesisSerializer
             msg = 'No se han encontrado registros.'
             if(tesis_serializer.data):
                 msg = 'Datos obtenidos correctamente.'
@@ -665,7 +812,7 @@ class TesisDetailApi(generics.RetrieveUpdateDestroyAPIView):
 
 class PublicTesisApi(generics.ListAPIView):
     queryset = Tesis.objects.all()
-    serializer_class = TesisSerializer
+    serializer_class = ListTesisSerializer
     http_method_names = ['get', 'options']
 
     def get(self, request, *args, **kwargs):
@@ -678,7 +825,7 @@ class PublicTesisApi(generics.ListAPIView):
            
 class PublicTesisDetailApi(generics.RetrieveAPIView):
     queryset = Tesis.objects.all()
-    serializer_class = TesisSerializer
+    serializer_class = PublicTesisSerializer
     http_method_names = ['get', 'options']
 
     def get(self, request, id_tes=None, *args, **kwars):
@@ -704,7 +851,9 @@ class CongresoApi(generics.ListCreateAPIView):
         change_perm = request.user.has_perm(permiso.CHANGE_CONGRESO.value)
         if view_perm or change_perm:
             congresos = Congreso.objects.all()
+            self.serializer_class = ListCongresoSerializer
             congresos_serializer = self.get_serializer(congresos, many=True)
+            self.serializer_class = CongresoSerializer
             msg = 'No se han encontrado registros.'
             if(congresos_serializer.data):
                 msg = 'Datos obtenidos correctamente.'
@@ -778,7 +927,7 @@ class CongresoDetailApi(generics.RetrieveUpdateDestroyAPIView):
 
 class PublicCongresoApi(generics.ListAPIView):
     queryset = Congreso.objects.all()
-    serializer_class = CongresoSerializer
+    serializer_class = ListCongresoSerializer
     http_method_names = ['get', 'options']
 
     def get(self, request, *args, **kwargs):
@@ -791,7 +940,7 @@ class PublicCongresoApi(generics.ListAPIView):
            
 class PublicCongresoDetailApi(generics.RetrieveAPIView):
     queryset = Congreso.objects.all()
-    serializer_class = CongresoSerializer
+    serializer_class = PublicCongresoSerializer
     http_method_names = ['get', 'options']
 
     def get(self, request, id_con=None, *args, **kwars):
@@ -805,142 +954,139 @@ class PublicCongresoDetailApi(generics.RetrieveAPIView):
         except:
             return Response({'error': True, 'msg': 'El id enviado es un UUID inválido.', 'data': None}, status = status.HTTP_400_BAD_REQUEST)
 
-#Miembros
-class MiembroApi(generics.ListCreateAPIView):
+#Capacitaciones
+class CapacitacionApi(generics.ListCreateAPIView):
     parser_class = (FileUploadParser,)
-    queryset = Miembro.objects.all()
-    serializer_class = MiembroSerializer
+    queryset = Capacitacion.objects.all()
+    serializer_class = CapacitacionSerializer
     authentication_classes = (TokenAuthentication,)
     permission_classes = (DjangoModelPermissions,)
     http_method_names = ['get', 'post', 'options']
 
     def get(self, request, *args, **kwargs):
-        view_perm = request.user.has_perm(permiso.VIEW_MIEMBRO.value)
-        change_perm = request.user.has_perm(permiso.CHANGE_MIEMBRO.value)
+        view_perm = request.user.has_perm(permiso.VIEW_CAPACITACION.value)
+        change_perm = request.user.has_perm(permiso.CHANGE_CAPACITACION.value)
         if view_perm or change_perm:
-            miembros = Miembro.objects.all()
-            miembros_serializer = self.get_serializer(miembros, many=True)
+            capacitaciones = Capacitacion.objects.all()
+            capacitaciones_serializer = self.get_serializer(capacitaciones, many=True)
             msg = 'No se han encontrado registros.'
-            if(miembros_serializer.data):
+            if(capacitaciones_serializer.data):
                 msg = 'Datos obtenidos correctamente.'
-            return Response({'error': False, 'msg': msg, 'data': miembros_serializer.data}, status = status.HTTP_200_OK)
+            return Response({'error': False, 'msg': msg, 'data': capacitaciones_serializer.data}, status = status.HTTP_200_OK)
         else:
             return Response({'error': True, 'msg': 'Usted no tiene permiso para ver los registros.', 'data': None}, status = status.HTTP_200_OK)
     def post(self, request, *args, **kwargs):
-        view_perm = request.user.has_perm(permiso.VIEW_MIEMBRO.value)
-        change_perm = request.user.has_perm(permiso.CHANGE_MIEMBRO.value)
-        miembro_serializer = self.get_serializer(data=request.data)
-        if miembro_serializer.is_valid():
-            miembro_serializer.save()
+        view_perm = request.user.has_perm(permiso.VIEW_CAPACITACION.value)
+        change_perm = request.user.has_perm(permiso.CHANGE_CAPACITACION.value)
+        capacitacion_serializer = self.get_serializer(data=request.data)
+        if capacitacion_serializer.is_valid():
+            capacitacion_serializer.save()
             if view_perm or change_perm:
-                return Response({'error': False,'msg': 'Registro Exitoso!!', 'data': miembro_serializer.data}, status = status.HTTP_201_CREATED)
+                return Response({'error': False,'msg': 'Registro Exitoso!!', 'data': capacitacion_serializer.data}, status = status.HTTP_201_CREATED)
             else:
                 return Response({'error': False,'msg': 'Registro Exitoso!!', 'data': None}, status = status.HTTP_201_CREATED)
-        return Response({'error': True, 'msg': miembro_serializer.errors, 'data': None}, status = status.HTTP_400_BAD_REQUEST)
+        return Response({'error': True, 'msg': capacitacion_serializer.errors, 'data': None}, status = status.HTTP_400_BAD_REQUEST)
 
-class MiembroDetailApi(generics.RetrieveUpdateDestroyAPIView):
+class CapacitacionDetailApi(generics.RetrieveUpdateDestroyAPIView):
     parser_class = (FileUploadParser,)
-    queryset = Miembro.objects.all()
-    serializer_class = MiembroSerializer
+    queryset = Capacitacion.objects.all()
+    serializer_class = CapacitacionSerializer
     authentication_classes = (TokenAuthentication,)
     permission_classes = (DjangoModelPermissions,)
     http_method_names = ['get', 'put', 'delete', 'options']
 
     def get_object(self):
         try:
-            return get_object_or_404(Miembro, pk=self.kwargs.get('id_miem'))
+            return get_object_or_404(Capacitacion, pk=self.kwargs.get('id_cap'))
         except:
             return None
 
-    def get(self, request, id_miem=None, *args, **kwars):
-        view_perm = request.user.has_perm(permiso.VIEW_MIEMBRO.value)
-        change_perm = request.user.has_perm(permiso.CHANGE_MIEMBRO.value)
+    def get(self, request, id_cap=None, *args, **kwars):
+        view_perm = request.user.has_perm(permiso.VIEW_CAPACITACION.value)
+        change_perm = request.user.has_perm(permiso.CHANGE_CAPACITACION.value)
         if view_perm or change_perm:
             try:
                 try:
-                    miembro = Miembro.objects.get(id_miem = id_miem)
-                    miembro_serializer = self.get_serializer(miembro)
-                    #return Response({'error': False, 'msg': 'Registro encontrado.', 'data': miembro_serializer.data}, status = status.HTTP_200_OK)
-                    return Response(miembro_serializer.data, status = status.HTTP_200_OK)
-                except Miembro.DoesNotExist:
+                    capacitacion = Capacitacion.objects.get(id_cap = id_cap)
+                    capacitacion_serializer = self.get_serializer(capacitacion)
+                    #return Response({'error': False, 'msg': 'Registro encontrado.', 'data': capacitacion_serializer.data}, status = status.HTTP_200_OK)
+                    return Response(capacitacion_serializer.data, status = status.HTTP_200_OK)
+                except Capacitacion.DoesNotExist:
                     return Response({'error': True, 'msg': 'El registro no existe.', 'data': None}, status = status.HTTP_404_NOT_FOUND)
             except:
                 return Response({'error': True, 'msg': 'El id enviado es un UUID inválido.', 'data': None}, status = status.HTTP_400_BAD_REQUEST)
         else:
             return Response({'error': True, 'msg': 'Usted no tiene permiso para realizar esta acción.', 'data': None}, status = status.HTTP_403_FORBIDDEN)
-    def put(self, request, id_miem=None, *args, **kwargs):
+    def put(self, request, id_cap=None, *args, **kwargs):
         try:
             try:
-                miembro = Miembro.objects.get(id_miem = id_miem)
-                miembro_serializer = self.get_serializer(miembro, data=request.data)
-                if miembro_serializer.is_valid():
-                    miembro_serializer.save()
-                    return Response({'error': False,'msg': 'Actualización Exitosa!!', 'data': miembro_serializer.data}, status = status.HTTP_200_OK)
-                return Response({'error': True, 'msg': miembro_serializer.errors, 'data': None}, status = status.HTTP_400_BAD_REQUEST)
-            except Miembro.DoesNotExist:
+                capacitacion = Capacitacion.objects.get(id_cap = id_cap)
+                capacitacion_serializer = self.get_serializer(capacitacion, data=request.data)
+                if capacitacion_serializer.is_valid():
+                    capacitacion_serializer.save()
+                    return Response({'error': False,'msg': 'Actualización Exitosa!!', 'data': capacitacion_serializer.data}, status = status.HTTP_200_OK)
+                return Response({'error': True, 'msg': capacitacion_serializer.errors, 'data': None}, status = status.HTTP_400_BAD_REQUEST)
+            except Capacitacion.DoesNotExist:
                 return Response({'error': True, 'msg': 'El registro no existe.', 'data': None}, status = status.HTTP_404_NOT_FOUND)
         except:
             return Response({'error': True, 'msg': 'El id enviado es un UUID inválido.', 'data': None}, status = status.HTTP_400_BAD_REQUEST)
-    def delete(self, request, id_miem=None, *args, **kwargs):
+    def delete(self, request, id_cap=None, *args, **kwargs):
         try:
             try:
-                miembro = Miembro.objects.get(id_miem = id_miem)
-                if(str(miembro.imagen_miem) != ''):
-                    if os.path.isfile(miembro.imagen_miem.path):
-                        os.remove(miembro.imagen_miem.path)
-                if(str(miembro.hvida_miem) != ''):
-                    if os.path.isfile(miembro.hvida_miem.path):
-                        os.remove(miembro.hvida_miem.path)
-                miembro.delete()
+                capacitacion = Capacitacion.objects.get(id_cap = id_cap)
+                if(str(capacitacion.imagen_cap) != ''):
+                    if os.path.isfile(capacitacion.imagen_cap.path):
+                        os.remove(capacitacion.imagen_cap.path)
+                capacitacion.delete()
                 return Response({'error': False, 'msg': 'Registro Eliminado Exitosamente!!'}, status = status.HTTP_200_OK)
-            except Miembro.DoesNotExist:
+            except Capacitacion.DoesNotExist:
                 return Response({'error': True, 'msg': 'El registro no existe.'}, status = status.HTTP_404_NOT_FOUND)
         except:
             return Response({'error': True, 'msg': 'El id enviado es un UUID inválido.'}, status = status.HTTP_400_BAD_REQUEST)
 
-class MiembroFilterApi(generics.ListAPIView):
-    queryset = Miembro.objects.all()
-    serializer_class = MiembroSerializer
+class CapacitacionFilterApi(generics.ListAPIView):
+    queryset = Capacitacion.objects.all()
+    serializer_class = CapacitacionSerializer
     http_method_names = ['get', 'options']
 
     def get(self, request, tipo=0, *args, **kwargs):
         try:
-            if int(tipo)>=0 and int(tipo)<(len(SELECT_MIEMBRO)):
-                miembros = Miembro.objects.filter(tipo_miem = tipo)
-                miembros_serializer = self.get_serializer(miembros, many=True)
-                msg = 'Lo sentimos. No se han encontrado miembros de este tipo.'
-                if(miembros_serializer.data):
+            if int(tipo)>=0 and int(tipo)<(len(CHOICE_CAPACITACION)):
+                capacitaciones = Capacitacion.objects.filter(tipo_cap = tipo)
+                capacitaciones_serializer = self.get_serializer(capacitaciones, many=True)
+                msg = 'Lo sentimos. No se han encontrado capacitaciones de este tipo.'
+                if(capacitaciones_serializer.data):
                     msg = 'Datos obtenidos correctamente.'
-                return Response({'error': False, 'msg': msg, 'data': miembros_serializer.data}, status = status.HTTP_200_OK)
-            return Response({'error': True, 'msg': 'Parametro ?(tipo de miembros)=/'+tipo+'/ enviado no existe. Ayuda '+str(SELECT_MIEMBRO), 'data': None}, status = status.HTTP_404_NOT_FOUND)
+                return Response({'error': False, 'msg': msg, 'data': capacitaciones_serializer.data}, status = status.HTTP_200_OK)
+            return Response({'error': True, 'msg': 'Parametro ?(tipo de capacitaciones)=/'+tipo+'/ enviado no existe. Ayuda '+str(CHOICE_CAPACITACION), 'data': None}, status = status.HTTP_404_NOT_FOUND)
         except:
-            return Response({'error': True, 'msg': 'Parametro ?(tipo de miembros)=/'+tipo+'/ enviado es inválido. Ayuda '+str(SELECT_MIEMBRO), 'data': None}, status = status.HTTP_400_BAD_REQUEST)
+            return Response({'error': True, 'msg': 'Parametro ?(tipo de capacitaciones)=/'+tipo+'/ enviado es inválido. Ayuda '+str(CHOICE_CAPACITACION), 'data': None}, status = status.HTTP_400_BAD_REQUEST)
 
-class PublicMiembroApi(generics.ListAPIView):
-    queryset = Miembro.objects.all()
-    serializer_class = MiembroSerializer
+class PublicCapacitacionApi(generics.ListAPIView):
+    queryset = Capacitacion.objects.all()
+    serializer_class = CapacitacionSerializer
     http_method_names = ['get', 'options']
 
     def get(self, request, *args, **kwargs):
-        miembros = Miembro.objects.all()
-        miembros_serializer = self.get_serializer(miembros, many=True)
+        capacitaciones = Capacitacion.objects.all()
+        capacitaciones_serializer = self.get_serializer(capacitaciones, many=True)
         msg = 'Lo sentimos. No se han encontrado registros.'
-        if(miembros_serializer.data):
+        if(capacitaciones_serializer.data):
             msg = 'Datos obtenidos correctamente.'
-        return Response({'msg': msg, 'data': miembros_serializer.data}, status = status.HTTP_200_OK)
+        return Response({'msg': msg, 'data': capacitaciones_serializer.data}, status = status.HTTP_200_OK)
            
-class PublicMiembroDetailApi(generics.RetrieveAPIView):
-    queryset = Miembro.objects.all()
-    serializer_class = MiembroSerializer
+class PublicCapacitacionDetailApi(generics.RetrieveAPIView):
+    queryset = Capacitacion.objects.all()
+    serializer_class = CapacitacionSerializer
     http_method_names = ['get', 'options']
 
-    def get(self, request, id_miem=None, *args, **kwars):
+    def get(self, request, id_cap=None, *args, **kwars):
         try:
             try:
-                miembro = Miembro.objects.get(id_miem = id_miem)
-                miembro_serializer = self.get_serializer(miembro)
-                return Response({'error': False, 'msg': 'Registro encontrado.', 'data': miembro_serializer.data}, status = status.HTTP_200_OK)
-            except Miembro.DoesNotExist:
+                capacitacion = Capacitacion.objects.get(id_cap = id_cap)
+                capacitacion_serializer = self.get_serializer(capacitacion)
+                return Response({'error': False, 'msg': 'Registro encontrado.', 'data': capacitacion_serializer.data}, status = status.HTTP_200_OK)
+            except Capacitacion.DoesNotExist:
                 return Response({'error': True, 'msg': 'El registro no existe.', 'data': None}, status = status.HTTP_404_NOT_FOUND)
         except:
             return Response({'error': True, 'msg': 'El id enviado es un UUID inválido.', 'data': None}, status = status.HTTP_400_BAD_REQUEST)
